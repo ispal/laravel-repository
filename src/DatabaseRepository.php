@@ -9,8 +9,8 @@
 
 namespace anlutro\LaravelRepository;
 
-use Illuminate\Database\Connection;
 use anlutro\LaravelValidation\ValidatorInterface;
+use Illuminate\Database\Connection;
 use Illuminate\Support\Fluent;
 
 /**
@@ -46,17 +46,16 @@ abstract class DatabaseRepository extends AbstractRepository
 	 */
 	public function __construct(Connection $db, ValidatorInterface $validator = null)
 	{
-		parent::__construct($validator);
-
 		if ($this->table === null) {
 			$class = get_class($this);
 			throw new \RuntimeException("Property {$class}::\$table must be defined.");
 		}
 
+		parent::__construct($validator);
+
 		$this->setConnection($db);
 
 		if ($validator) {
-			$this->setValidator($validator);
 			$validator->replace('table', $this->table);
 		}
 	}
@@ -65,6 +64,8 @@ abstract class DatabaseRepository extends AbstractRepository
 	 * Set the connection to run queries on.
 	 *
 	 * @param \Illuminate\Database\Connection $db
+	 *
+	 * @return $this
 	 */
 	public function setConnection(Connection $db)
 	{
@@ -84,11 +85,15 @@ abstract class DatabaseRepository extends AbstractRepository
 	/**
 	 * Set the table to query from.
 	 *
-	 * @param string $table
+	 * @param  string $table
+	 *
+	 * @return $this
 	 */
 	public function setTable($table)
 	{
 		$this->table = (string) $table;
+
+		return $this;
 	}
 
 	/**
@@ -99,8 +104,6 @@ abstract class DatabaseRepository extends AbstractRepository
 	public function getTable()
 	{
 		return $this->table;
-
-		return $this;
 	}
 
 	/**
@@ -128,12 +131,10 @@ abstract class DatabaseRepository extends AbstractRepository
 	 */
 	protected function performCreate($entity, array $attributes = array())
 	{
-		foreach ($attributes as $key => $value) {
-			$entity->$key = $value;
-		}
+		$this->fillEntityAttributes($entity, $attributes);
 
 		$result = $this->newQuery()
-			->insert($entity->toArray());
+			->insert($this->getEntityAttributes($entity));
 
 		return $result ? $entity : false;
 	}
@@ -143,13 +144,11 @@ abstract class DatabaseRepository extends AbstractRepository
 	 */
 	protected function performUpdate($entity, array $attributes)
 	{
-		foreach ($attributes as $key => $value) {
-			$entity->$key = $value;
-		}
+		$this->fillEntityAttributes($entity, $attributes);
 
 		return (bool) $this->newQuery()
-			->where($this->getKeyName(), '=', $entity->{$this->primaryKey})
-			->update($entity->toArray());
+			->where($this->getKeyName(), '=', $this->getEntityKey($entity))
+			->update($this->getEntityAttributes($entity));
 	}
 
 	/**
@@ -158,7 +157,7 @@ abstract class DatabaseRepository extends AbstractRepository
 	protected function performDelete($entity)
 	{
 		return (bool) $this->newQuery()
-			->where($this->getKeyName(), '=', $entity->{$this->primaryKey})
+			->where($this->getKeyName(), '=', $this->getEntityKey($entity))
 			->delete();
 	}
 
@@ -184,5 +183,20 @@ abstract class DatabaseRepository extends AbstractRepository
 	protected function getEntityAttributes($entity)
 	{
 		return $entity->getAttributes();
+	}
+
+	/**
+	 * Fill an entity's attributes.
+	 *
+	 * @param  mixed  $entity
+	 * @param  array  $attributes
+	 *
+	 * @return void
+	 */
+	protected function fillEntityAttributes($entity, array $attributes)
+	{
+		foreach ($attributes as $key => $value) {
+			$entity->$key = $value;
+		}
 	}
 }

@@ -109,7 +109,7 @@ abstract class AbstractRepository
 	 *
 	 * @param \anlutro\LaravelRepository\CriteriaInterface $criteria
 	 *
-	 * @return static
+	 * @return $this
 	 */
 	protected function addDefaultCriteria(CriteriaInterface $criteria)
 	{
@@ -269,11 +269,13 @@ abstract class AbstractRepository
 	/**
 	 * Reset the repository's errors.
 	 *
-	 * @return void
+	 * @return $this
 	 */
 	protected function resetErrors()
 	{
 		$this->errors = new MessageBag;
+
+		return $this;
 	}
 
 	/**
@@ -291,7 +293,7 @@ abstract class AbstractRepository
 	 *
 	 * @param \anlutro\LaravelValidation\ValidatorInterface $validator
 	 *
-	 * @return static
+	 * @return $this
 	 */
 	public function setValidator(ValidatorInterface $validator)
 	{
@@ -315,7 +317,7 @@ abstract class AbstractRepository
 	 *
 	 * @param  false|int $toggle
 	 *
-	 * @return static
+	 * @return $this
 	 */
 	public function paginate($toggle)
 	{
@@ -331,7 +333,7 @@ abstract class AbstractRepository
 	 * @param  boolean $toggleValidator Whether or not to toggle exceptions on
 	 * the validator as well as the repository. Defaults to true
 	 *
-	 * @return static
+	 * @return $this
 	 */
 	public function toggleExceptions($toggle, $toggleValidator = true)
 	{
@@ -381,7 +383,7 @@ abstract class AbstractRepository
 	 *
 	 * @param  \anlutro\LaravelRepository\CriteriaInterface $criteria
 	 *
-	 * @return static
+	 * @return $this
 	 */
 	public function pushCriteria(CriteriaInterface $criteria)
 	{
@@ -393,7 +395,7 @@ abstract class AbstractRepository
 	/**
 	 * Reset the criteria stack.
 	 *
-	 * @return static
+	 * @return $this
 	 */
 	public function resetCriteria()
 	{
@@ -561,9 +563,9 @@ abstract class AbstractRepository
 	}
 
 	/**
-	 * Get all the entities for the repository.
+	 * Get all rows.
 	 *
-	 * @return object[]
+	 * @return mixed
 	 */
 	public function getAll()
 	{
@@ -583,15 +585,16 @@ abstract class AbstractRepository
 	 */
 	public function getByAttributes(array $attributes)
 	{
-		if (empty($attributes)) {
-			throw new \InvalidArgumentException('Cannot getByAttributes with an empty set of attributes');
+		if (count($attributes) < 1) {
+			throw new \InvalidArgumentException('Cannot getByAttributes with an empty array');
 		}
 
 		return $this->fetchMany($this->newAttributesQuery($attributes));
 	}
 
 	/**
-	 * Get a collection of rows by criteria.
+	 * Get a collection of rows by a criteria. This resets all previously pushed
+	 * criteria.
 	 *
 	 * @param  \anlutro\LaravelRepository\CriteriaInterface $criteria
 	 *
@@ -603,6 +606,27 @@ abstract class AbstractRepository
 		$this->pushCriteria($criteria);
 
 		return $this->fetchMany($this->newQuery());
+	}
+
+	/**
+	 * Get a collection of rows by an array of primary keys.
+	 *
+	 * @param  array  $keys
+	 *
+	 * @return mixed
+	 *
+	 * @throws \InvalidArgumentException if $keys is empty
+	 */
+	public function getByKeys(array $keys)
+	{
+		if (count($keys) < 1) {
+			throw new \InvalidArgumentException('Cannot getByKeys with an empty array');
+		}
+
+		$query = $this->newQuery()
+			->whereIn($this->getKeyName(), $keys);
+
+		return $this->fetchMany($query);
 	}
 
 	/**

@@ -10,8 +10,7 @@ env:
   - FRAMEWORK_VERSION="5.0.*@dev" SKELETON_VERSION="dev-develop@dev"
 
 before_install:
-  - composer require illuminate/database:${FRAMEWORK_VERSION} --no-update
-  - composer require laravel/laravel:${SKELETON_VERSION} --dev --no-update
+  - composer require illuminate/database:${LVERSION} laravel/laravel:${LVERSION} --no-update
 
 install: composer install --dev --prefer-dist
 
